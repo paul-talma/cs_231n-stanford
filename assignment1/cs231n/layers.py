@@ -1,6 +1,4 @@
-from builtins import range
 import numpy as np
-
 
 
 def affine_forward(x, w, b):
@@ -28,7 +26,8 @@ def affine_forward(x, w, b):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    input = x.reshape(x.shape[0], -1)
+    out = input @ w + b
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -61,7 +60,10 @@ def affine_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    db = dout.sum(axis=0)
+    x_reshape = x.reshape(x.shape[0], -1)
+    dx = (dout @ w.T).reshape(x.shape)
+    dw = x_reshape.T @ dout
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -87,7 +89,7 @@ def relu_forward(x):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    out = np.maximum(0, x)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -114,7 +116,8 @@ def relu_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    dx = dout
+    dx[x < 0] = 0
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -772,8 +775,14 @@ def svm_loss(x, y):
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N = x.shape[0]
+    x_true = x[range(N), y][:, np.newaxis]
+    margins = np.maximum(0, x - x_true + 1)
+    loss = np.sum(margins[margins > 0]) / N - 1
 
-    pass
+    dx = (margins > 0).astype(int)
+    dx[np.arange(N), y] -= dx.sum(axis=1)
+    dx = dx / N
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -803,7 +812,11 @@ def softmax_loss(x, y):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N = x.shape[0]
+    p = np.exp(x) / np.sum(np.exp(x), axis=1, keepdims=True)
+    loss = -np.sum(np.log(p[range(N), y])) / N
+    p[range(N), y] -= 1
+    dx = p / N
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

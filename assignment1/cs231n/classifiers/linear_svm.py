@@ -30,14 +30,14 @@ def svm_loss_naive(W, X, y, reg):
     for i in range(num_train):
         scores = X[i].dot(W)
         correct_class_score = scores[y[i]]
-        x_i = X[i].T
+        x_i = X[i]
         for j in range(num_classes):
             if j == y[i]:
                 continue
             margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
                 loss += margin
-                dW[:, j] = x_i
+                dW[:, j] += x_i
                 dW[:, y[i]] -= x_i
 
     # Right now the loss is a sum over all training examples, but we want it
@@ -58,9 +58,7 @@ def svm_loss_naive(W, X, y, reg):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     dW /= num_train
-
-    reg_grad = 2 * reg * W
-    dW += reg_grad
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -82,15 +80,11 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    num_train = X.shape[0]
-    scores = X.dot(W)
-    margin = scores - np.take_along_axis(scores, y.reshape(-1, 1), axis=1) + 1
-    margin[np.arange(scores.shape[0]), y] = 0
-    loss = np.sum(margin[margin > 0])
-
-    # Right now the loss is a sum over all training examples, but we want it
-    # to be an average instead so we divide by num_train.
-    loss /= num_train
+    N = X.shape[0]
+    y_hat = X @ W
+    y_hat_true = y_hat[np.arange(N), y][:, np.newaxis]
+    margins = np.maximum(0, y_hat - y_hat_true + 1)
+    loss = np.sum(margins[margins > 0]) / N - 1
 
     # Add regularization to the loss.
     loss += reg * np.sum(W * W)
@@ -108,8 +102,11 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
-
+    # dW = margin_violations
+    dW = (margins > 0).astype(int)
+    dW[np.arange(N), y] -= dW.sum(axis=1)
+    dW = X.T @ dW
+    dW = dW / N + 2 * reg * W
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     return loss, dW
