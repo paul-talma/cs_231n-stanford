@@ -1,5 +1,5 @@
-from .layers import *
 from .fast_layers import *
+from .layers import *
 
 
 def affine_relu_forward(x, w, b):
@@ -18,19 +18,67 @@ def affine_relu_forward(x, w, b):
     cache = (fc_cache, relu_cache)
     return out, cache
 
+
 def affine_relu_backward(dout, cache):
-    """Backward pass for the affine-relu convenience layer.
-    """
+    """Backward pass for the affine-relu convenience layer."""
     fc_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
     dx, dw, db = affine_backward(da, fc_cache)
     return dx, dw, db
 
+
 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-pass
+
+def generic_forward(x, w, b, beta=None, gamma=None, bn=None, do=None, last_layer=False):
+    # initialize caches
+    bn_cache = ln_cache = relu_cache = do_cache = None
+
+    # affine in any case
+    out, affine_cache = affine_forward(x, w, b)
+
+    if not last_layer:
+        if bn:
+            if "mode" in bn:
+                # layer has batchnorm
+                pass
+            else:
+                # layer has layernorm
+                pass
+
+        out, relu_cache = relu_forward(out)
+
+        if do:
+            # layer has dropout
+            pass
+
+    cache = affine_cache, bn_cache, ln_cache, relu_cache, do_cache
+
+    return out, cache
+
+
+def generic_backward(dout, cache):
+    # unroll caches
+    affine_cache, batchnorm_cache, layernorm_cache, relu_cache, dropout_cache = cache
+    # initialize dgamma, dbeta
+    dgamma = dbeta = None
+
+    if dropout_cache is not None:
+        dout = dropout_backward(dout, dropout_cache)
+    if relu_cache is not None:
+        dout = relu_backward(dout, relu_cache)
+    if layernorm_cache is not None:
+        dout, dgamma, dbeta = layernorm_backward(dout, layernorm_cache)
+    elif batchnorm_cache is not None:
+        dout, dgamma, dbeta = batchnorm_backward(dout, batchnorm_cache)
+
+    dx, dw, db = affine_backward(dout, affine_cache)
+
+    return dx, dw, db, dgamma, dbeta
+
 
 # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+
 
 def conv_relu_forward(x, w, b, conv_param):
     """A convenience layer that performs a convolution followed by a ReLU.
@@ -50,8 +98,7 @@ def conv_relu_forward(x, w, b, conv_param):
 
 
 def conv_relu_backward(dout, cache):
-    """Backward pass for the conv-relu convenience layer.
-    """
+    """Backward pass for the conv-relu convenience layer."""
     conv_cache, relu_cache = cache
     da = relu_backward(dout, relu_cache)
     dx, dw, db = conv_backward_fast(da, conv_cache)
@@ -81,8 +128,7 @@ def conv_bn_relu_forward(x, w, b, gamma, beta, conv_param, bn_param):
 
 
 def conv_bn_relu_backward(dout, cache):
-    """Backward pass for the conv-bn-relu convenience layer.
-    """
+    """Backward pass for the conv-bn-relu convenience layer."""
     conv_cache, bn_cache, relu_cache = cache
     dan = relu_backward(dout, relu_cache)
     da, dgamma, dbeta = spatial_batchnorm_backward(dan, bn_cache)
@@ -110,8 +156,7 @@ def conv_relu_pool_forward(x, w, b, conv_param, pool_param):
 
 
 def conv_relu_pool_backward(dout, cache):
-    """Backward pass for the conv-relu-pool convenience layer.
-    """
+    """Backward pass for the conv-relu-pool convenience layer."""
     conv_cache, relu_cache, pool_cache = cache
     ds = max_pool_backward_fast(dout, pool_cache)
     da = relu_backward(ds, relu_cache)

@@ -69,7 +69,8 @@ def sgd_momentum(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    v = config["momentum"] * v - config["learning_rate"] * dw
+    next_w = w + v
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -107,7 +108,13 @@ def rmsprop(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    cache = config["cache"]
+    lr = config["learning_rate"]
+    dr = config["decay_rate"]
+    eps = config["epsilon"]
+
+    config["cache"] = cache = dr * cache + (1 - dr) * dw**2
+    next_w = w - lr * dw / (np.sqrt(cache) + eps)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -152,7 +159,19 @@ def adam(w, dw, config=None):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # for concision
+    keys = ["learning_rate", "beta1", "beta2", "epsilon", "m", "v", "t"]
+    lr, b1, b2, eps, m, v, t = (config.get(k) for k in keys)
+
+    config["t"] = t = t + 1
+    config["m"] = m = b1 * m + (1 - b1) * dw  # momentum
+    config["v"] = v = b2 * v + (1 - b2) * dw**2  # rms prop
+
+    # bias correction
+    mt = m / (1 - b1**t)
+    vt = v / (1 - b2**t)
+
+    next_w = w - lr * mt / (np.sqrt(vt) + eps)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

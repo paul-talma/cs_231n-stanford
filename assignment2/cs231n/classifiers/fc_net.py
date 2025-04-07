@@ -1,9 +1,9 @@
-from builtins import range
-from builtins import object
+from builtins import object, range
+
 import numpy as np
 
-from ..layers import *
 from ..layer_utils import *
+from ..layers import *
 
 
 class FullyConnectedNet(object):
@@ -74,7 +74,14 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        layer_dims = zip([input_dim, *hidden_dims], [*hidden_dims, num_classes])
+        for layer, (i, j) in enumerate(layer_dims):
+            self.params[f"W{layer + 1}"] = np.random.randn(i, j) * weight_scale
+            self.params[f"b{layer + 1}"] = np.zeros(j)
+
+            if self.normalization and layer < self.num_layers - 1:
+                self.params[f"gamma{layer + 1}"] = np.ones(j)
+                self.params[f"beta{layer + 1}"] = np.ones(0)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -107,7 +114,7 @@ class FullyConnectedNet(object):
 
     def loss(self, X, y=None):
         """Compute loss and gradient for the fully connected net.
-        
+
         Inputs:
         - X: Array of input data of shape (N, d_1, ..., d_k)
         - y: Array of labels, of shape (N,). y[i] gives the label for X[i].
@@ -134,6 +141,7 @@ class FullyConnectedNet(object):
             for bn_param in self.bn_params:
                 bn_param["mode"] = mode
         scores = None
+
         ############################################################################
         # TODO: Implement the forward pass for the fully connected net, computing  #
         # the class scores for X and storing them in the scores variable.          #
@@ -148,7 +156,20 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        cache = {}
+        scores = X
+        for l in range(self.num_layers):
+            # set up keys
+            param_keys = [f"W{l + 1}", f"b{l + 1}", f"beta{l + 1}", f"gamma{l + 1}"]
+            # get params
+            w, b, beta, gamma = (self.params.get(key, None) for key in param_keys)
+            bn = self.bn_params[l] if self.normalization == "batchnorm" else None
+            do = self.dropout_param if self.use_dropout else None
+
+            # forward pass
+            scores, cache[l] = generic_forward(
+                scores, w, b, beta, gamma, bn, do, l == self.num_layers - 1
+            )
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -175,7 +196,19 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dout = softmax_loss(scores, y)
+        squared_weights = [np.sum(W**2) for k, W in self.params.items() if "W" in k]
+        regularization_loss = np.sum(squared_weights)
+        loss += self.reg * regularization_loss / 2
+
+        for l in range(self.num_layers, 0, -1):
+            dout, dw, db, dgamma, dbeta = generic_backward(dout, cache[l - 1])
+            grads[f"W{l}"] = dw + self.reg * self.params[f"W{l}"]
+            grads[f"b{l}"] = db
+
+            if dgamma:
+                grads[f"gamma{l}"] = dgamma
+                grads[f"beta{l}"] = dbeta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
