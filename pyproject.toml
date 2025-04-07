@@ -9,8 +9,24 @@ dependencies = [
     "imageio>=2.37.0",
     "ipykernel>=6.29.5",
     "ipython>=9.0.2",
+    "jupytext>=1.16.7",
     "matplotlib>=3.10.1",
     "numpy>=2.2.4",
+    "pynvim>=0.5.2",
     "requests>=2.32.3",
+    "scipy>=1.15.2",
     "torch>=2.6.0",
+]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+		"W",
+]
+ignore = [
+	"F405",
+	"E741"
 ]
